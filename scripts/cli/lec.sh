@@ -18,7 +18,7 @@ PROJECT_DIRECTORY=""
 #
 
 # shellcheck disable=SC2034
-export FZF_DEFAULT_OPTS="--ansi --color='dark' --height='50'% --info='inline' --reverse"
+export FZF_DEFAULT_OPTS="--ansi --color='dark' --header='Type to filter results' --height='50'% --info='inline' --reverse"
 
 _fzf() {
 	if [[ -x "${LEC_REPO_ROOT}/scripts/cli/dependencies/fzf" ]]; then

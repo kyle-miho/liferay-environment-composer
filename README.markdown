@@ -769,6 +769,14 @@ lec clean # Shuts down the environment and deletes the Docker volumes
 
 ```
 
+Print the exposed ports for the project's services:
+
+```sh
+
+lec ports # Prints the exposed ports for the project's services
+
+```
+
 Completely tear down and remove one or more Composer projects:
 
 ```sh

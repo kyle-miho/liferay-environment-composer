@@ -673,13 +673,6 @@ _cmd_gw() {
 		./gradlew "${@}"
 	)
 }
-_cmd_ports() {
-	_checkProjectDirectory
-
-	local serviceName="${1}"
-
-	_getServicePorts "${PROJECT_DIRECTORY}" "${serviceName}"
-}
 _cmd_setupLocalFzf() {
 	local pattern
 
@@ -904,6 +897,13 @@ cmd_list() {
 	fi
 
 	_list_"${entity}"
+}
+cmd_ports() {
+	_checkProjectDirectory
+
+	local serviceName="${1}"
+
+	_getServicePorts "${PROJECT_DIRECTORY}" "${serviceName}"
 }
 cmd_remove() {
 	local worktrees

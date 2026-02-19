@@ -679,6 +679,43 @@ _cmd_ports() {
 
 	_getServicePorts "${PROJECT_DIRECTORY}" "${serviceName}"
 }
+_cmd_setupLocalFzf() {
+	local pattern
+
+	if [[ -f scripts/cli/dependencies/fzf ]]; then
+		rm scripts/cli/dependencies/fzf
+	fi
+
+	pattern="$(gh -R junegunn/fzf release view 0.29.0 --json assets --jq ".assets.[].name" | grep -v checksum | _fzf)"
+
+	if [[ -z "${pattern}" ]]; then
+		return 1
+	fi
+
+	gh -R junegunn/fzf release download 0.29.0 --pattern="*${pattern}" --clobber
+
+	case "${pattern}" in
+		*.zip)
+			echo "Extracting ZIP archive: ${pattern}"
+			unzip -o "${pattern}" -d scripts/cli/dependencies || exit 1
+			;;
+		*.tar.gz | *.tgz)
+			echo "Extracting TGZ archive: ${pattern}"
+			tar -xzf "${pattern}" -C scripts/cli/dependencies
+			;;
+		*)
+			echo "Unsupported archive type or unknown file extension: ${pattern}"
+			echo "Please use '.zip' or '.tar.gz' (or '.tgz') files."
+			exit 1
+			;;
+	esac
+
+	if [[ -f "${pattern}" ]]; then
+		rm "${pattern}"
+	fi
+
+	_fzf --version
+}
 _cmd_setVersion() {
 	_checkProjectDirectory
 

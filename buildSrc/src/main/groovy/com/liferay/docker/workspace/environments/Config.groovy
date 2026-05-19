@@ -350,7 +350,6 @@ class Config {
 			}
 
 			this.elasticsearchMajorVersion = elasticsearchMajorVersion
-			this.elasticsearchProductionModeEnabled = elasticsearchMajorVersion == "7" ? "false" : "true"
 		}
 
 		if (this.dockerImageLiferay.contains("7.4") || this.dockerImageLiferay.contains(".q")) {
@@ -484,7 +483,6 @@ class Config {
 	public String dockerImageLiferay = null
 	public boolean dockerImageLiferayDXP = false
 	public String elasticsearchMajorVersion = ""
-	public String elasticsearchProductionModeEnabled = ""
 	public List<String> gcpHotfixURLs = new ArrayList<String>()
 	public boolean glowrootEnabled = false
 	public List<String> hotfixURLs = new ArrayList<String>()

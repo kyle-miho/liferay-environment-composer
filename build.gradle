@@ -435,7 +435,6 @@ config.serviceVersions.each {
 
 if (config.services.contains("elasticsearch")) {
 	environmentMap.put("ELASTICSEARCH_MAJOR_VERSION", config.elasticsearchMajorVersion)
-	environmentMap.put("ELASTICSEARCH_PRODUCTION_MODE_ENABLED", config.elasticsearchProductionModeEnabled)
 }
 
 file('.env').withOutputStream {

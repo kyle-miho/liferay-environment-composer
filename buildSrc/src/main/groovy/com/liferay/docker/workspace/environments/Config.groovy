@@ -214,9 +214,9 @@ class Config {
 			this.recaptchaEnabled = recaptchaEnabledProperty.toBoolean()
 		}
 
-		def webserverHostnamesProperty = project.findProperty("lr.docker.environment.web.server.hostnames").split(',')*.trim().findAll { it }
+		def webserverHostnamesProperty = project.findProperty("lr.docker.environment.web.server.hostnames")?.split(',')*.trim()?.findAll { it }
 
-		if (webserverHostnamesProperty != null) {
+		if (webserverHostnamesProperty) {
 			this.webserverHostnames = webserverHostnamesProperty.join(' ')
 		}
 

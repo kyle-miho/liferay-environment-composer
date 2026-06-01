@@ -463,7 +463,6 @@ _getServicePorts() {
 	local template
 
 	read -r -d '' template <<- 'EOF'
-	table NAME	CONTAINER PORT	HOST PORT	WEB LINK
 	{{$name := .Name -}}
 
 	{{range .Publishers -}}
@@ -475,13 +474,37 @@ _getServicePorts() {
 	{{end -}}
 	EOF
 
+	local hostname
+	hostname="$(_getComposeProjectName "${projectDir}").localhost"
+
 	(
 		cd "${projectDir}" || exit 1
 
-		if [[ "${serviceName}" ]]; then
-			docker compose ps "${serviceName}" --format "${template}" | tail -n +3
-		else
-			docker compose ps --format "${template}" | tail -n +3
+		local docker_output
+		# shellcheck disable=SC2086
+		docker_output="$(docker compose ps ${serviceName:+"${serviceName}"} --format "${template}" | grep -v '^$')"
+
+		if [[ -z "${docker_output}" ]]; then
+			exit
+		fi
+
+		local browser_ports="80|443|8080|8443|9080"
+
+		{
+			printf "NAME\tCONTAINER PORT\tHOST PORT\tWEB LINK\tNAMESPACED LINK\n"
+
+			while read -r name container host link; do
+				local namespaced="—"
+				if [[ "${container}" =~ ^(${browser_ports})$ ]]; then
+					namespaced="${link/localhost/${hostname}}"
+				fi
+				printf "%s\t%s\t%s\t%s\t%s\n" "${name}" "${container}" "${host}" "${link}" "${namespaced}"
+			done <<< "${docker_output}"
+		} | column -t -s $'\t'
+
+		if cut -f2 <<< "${docker_output}" | grep -qE "^(${browser_ports})\$"; then
+			echo
+			echo "Tip: Use *.localhost with multiple workspaces to keep browser sessions isolated."
 		fi
 	)
 }

@@ -463,15 +463,16 @@ _getServicePorts() {
 	local template
 
 	read -r -d '' template <<- 'EOF'
-	{{$name := .Name -}}
-
+	NAME,CONTAINER PORT,HOST PORT,WEB LINK,NAMESPACED LINK
 	{{range .Publishers -}}
-
-	{{if eq .URL "0.0.0.0" -}}
-		{{$name}}	{{.TargetPort}}	{{.PublishedPort}}	{{if eq .PublishedPort 443}}https{{else}}http{{end}}://localhost:{{.PublishedPort}}
-	{{end -}}
-
-	{{end -}}
+		{{if eq .URL "0.0.0.0"}}
+			{{- $.Name}},
+			{{- .TargetPort}},
+			{{- .PublishedPort}},
+			{{- if eq .PublishedPort 443}}https{{else}}http{{end}}://localhost:{{.PublishedPort}},
+			{{- "-"}}
+		{{end}}
+	{{- end}}
 	EOF
 
 	local hostname
@@ -480,32 +481,12 @@ _getServicePorts() {
 	(
 		cd "${projectDir}" || exit 1
 
-		local docker_output
-		# shellcheck disable=SC2086
-		docker_output="$(docker compose ps ${serviceName:+"${serviceName}"} --format "${template}" | grep -v '^$')"
-
-		if [[ -z "${docker_output}" ]]; then
-			exit
-		fi
-
-		local browser_ports="80|443|8080|8443|9080"
-
-		{
-			printf "NAME\tCONTAINER PORT\tHOST PORT\tWEB LINK\tNAMESPACED LINK\n"
-
-			while read -r name container host link; do
-				local namespaced="—"
-				if [[ "${container}" =~ ^(${browser_ports})$ ]]; then
-					namespaced="${link/localhost/${hostname}}"
-				fi
-				printf "%s\t%s\t%s\t%s\t%s\n" "${name}" "${container}" "${host}" "${link}" "${namespaced}"
-			done <<< "${docker_output}"
-		} | column -t -s $'\t'
-
-		if cut -f2 <<< "${docker_output}" | grep -qE "^(${browser_ports})\$"; then
-			echo
-			echo "Tip: Use *.localhost with multiple workspaces to keep browser sessions isolated."
-		fi
+		docker compose ps ${serviceName:+"${serviceName}"} --format "${template}" |
+		sed -E "s@((https?://)localhost:(80|443|8080|8443|9080)),-@\1,\2${hostname}:\3@g" |
+		column -t -s ',' |
+		tee /dev/tty |
+		grep -q "${hostname}" &&
+		printf "\nTip: Use the 'NAMESPACED LINK' when running multiple projects at once to keep browser sessions isolated.\n"
 	)
 }
 _getWorktreeDir() {

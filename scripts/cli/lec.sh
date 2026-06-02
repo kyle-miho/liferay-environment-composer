@@ -796,7 +796,6 @@ cmd_clean() {
 	fi
 
 	_clean "${PROJECT_DIRECTORY}"
-	
 }
 cmd_exportData() {
 	_checkProjectDirectory "${PWD}"
@@ -1016,7 +1015,7 @@ cmd_restart() {
 			;;
 		esac
 	done
-	
+
 	if [[ "${FLAG_CLEAN}" -gt 0 ]]; then
 		_clean "${PROJECT_DIRECTORY}"
 	else

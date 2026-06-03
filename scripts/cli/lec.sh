@@ -13,6 +13,20 @@ fi
 
 PROJECT_DIRECTORY=""
 
+_column() {
+	if [[ "$(uname)" == "Darwin" ]]; then
+		if ! command -v "$(brew --prefix util-linux)/bin/column" &>/dev/null; then
+			brew install util-linux
+		fi
+
+		"$(brew --prefix util-linux)/bin/column" "${@}"
+
+		return
+	fi
+
+	column "${@}"
+}
+
 #
 # Helper function for fzf
 #
@@ -483,10 +497,10 @@ _getServicePorts() {
 
 		docker compose ps ${serviceName:+"${serviceName}"} --format "${template}" |
 		sed -E "s@((https?://)localhost:(80|443|8080|8443|9080)),-@\1,\2${hostname}:\3@g" |
-		column -t -s ',' |
+		_column --keep-empty-lines --separator ',' --table |
 		tee /dev/tty |
 		grep -q "${hostname}" &&
-		printf "\nTip: Use the 'NAMESPACED LINK' when running multiple projects at once to keep browser sessions isolated.\n"
+		printf "Tip: Use the 'NAMESPACED LINK' when running multiple projects at once to keep browser sessions isolated.\n"
 	)
 }
 _getWorktreeDir() {

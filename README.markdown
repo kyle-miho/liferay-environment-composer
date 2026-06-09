@@ -56,8 +56,9 @@ To shut down the environment, run `./gradlew stop`.
 
 ### Webserver features overview
 
-- [Enable NGINX (HTTP)](#enable-nginx-http)
-- [Enable NGINX (HTTPS)](#enable-nginx-https)
+- [Enable NGINX](#enable-nginx)
+- [Configure webserver protocol](#configure-webserver-protocol)
+- [Enable ModSecurity rules](#enable-modsecurity-rules)
 - [Use custom hostnames](#use-custom-hostnames)
 - [Configure webserver ports](#configure-webserver-ports)
 - Supports Liferay clustering OOTB
@@ -524,30 +525,36 @@ MAIL_SMTP_PORT=1025
 
 ### Webserver Features
 
-#### Enable NGINX (HTTP)
+#### Enable NGINX
 
-Set the `lr.docker.environment.service.enabled[webserver_http]` property to `true` or `1` in `gradle.properties`.
+Set the `lr.docker.environment.service.enabled[webserver]` property to `true` or `1` in `gradle.properties`.
 
 `gradle.properties`:
 
 ```properties
-lr.docker.environment.service.enabled[webserver_http]=true
+lr.docker.environment.service.enabled[webserver]=true
 ```
 
-#### Enable NGINX (HTTPS)
+#### Configure webserver protocol
 
-Set the `lr.docker.environment.service.enabled[webserver_https]` property to `true` or `1` in `gradle.properties`.
-
-`gradle.properties`:
+Set `lr.docker.environment.web.server.protocol` to either `http` (default) or `https` in `gradle.properties`. When set to `https`, NGINX serves on the HTTPS port using a self-signed certificate generated from the configured hostnames.
 
 ```properties
-lr.docker.environment.service.enabled[webserver_https]=true
+lr.docker.environment.web.server.protocol=http
+```
+
+#### Enable ModSecurity rules
+
+Set `lr.docker.environment.web.server.modsecurity.enabled` to `true` or `1` in `gradle.properties` to build the webserver image from the OWASP ModSecurity CRS NGINX image.
+
+```properties
+lr.docker.environment.web.server.modsecurity.enabled=true
 ```
 
 #### Configure webserver ports
 
 The webserver HTTP and HTTPS ports can be configured by the `WEBSERVER_HTTP_PORT` and the `WEBSERVER_HTTPS_PORT`
-environment variables respectively in the `ports.env` file.
+environment variables respectively in the `ports.env` file. Only the port matching the configured protocol is published.
 
 `ports.env`:
 

@@ -189,8 +189,12 @@ tasks.register("shareWorkspace7z") {
 			project.relativePath(file)
 		}.join("\n")
 
+		String password = findProperty("password")
+
+		String encryptionFlags = password ? "-mhe=on -p${password} " : ""
+
 		try {
-			waitForCommand("7z a -m0=lzma2 -mx=1 -bsp2 ${archiveFileName} -i@${fileListFileName}")
+			waitForCommand("7z a -m0=lzma2 -mx=1 -bsp2 ${encryptionFlags}${archiveFileName} -i@${fileListFileName}")
 		}
 		finally {
 			fileListFile.delete()
@@ -206,6 +210,12 @@ tasks.register("shareWorkspaceZip", Zip) {
 	}
 
 	destinationDirectory = file 'shared_workspaces'
+
+	doFirst {
+		if (findProperty("password")) {
+			throw new GradleException("Zip archives do not support AES-256 encryption. Install 7z to encrypt workspace archives.")
+		}
+	}
 
 	doLast {
 		logger.lifecycle "\nWorkspace zip: ${archiveFile.get()}\n"

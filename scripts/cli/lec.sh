@@ -118,7 +118,8 @@ _printHelpAndExit() {
 		  ports                                     List exposed ports for a Composer project
 		  remove, rm [<project identifier>]         Completely tear down and remove one or more Composer projects
 		  restart [--clean]                         Restarts a running Composer project. The "--clean" flag removes Docker volumes and images during the shutdown.
-		  share [--export]                          Save a Composer workspace for sharing. The "--export" flag exports the container data before saving the workspace.
+		  share [--export] [--encrypt] [--no-encrypt]
+		                                            Save a Composer workspace for sharing. Prompts to encrypt the archive with AES-256 using a password stored in 1Password and outputs a shareable link for the recipient. "--export" exports container data first. "--encrypt" / "--no-encrypt" skips the prompt.
 		  update [--unstable]                       Check for updates to Composer and lec. The "--unstable" flag updates to latest master branch.
 		  version                                   Prints the current version of lec
 
@@ -1043,12 +1044,19 @@ cmd_rm() {
 cmd_share() {
 	_checkProjectDirectory "${PWD}"
 
+	local FLAG_ENCRYPT=""
 	local FLAG_EXPORT=0
 
 	while [[ $# -gt 0 ]]; do
 		case "${1}" in
+		--encrypt)
+			shift && FLAG_ENCRYPT=1
+			;;
 		--export)
 			shift && FLAG_EXPORT=1
+			;;
+		--no-encrypt)
+			shift && FLAG_ENCRYPT=0
 			;;
 		*)
 			shift
@@ -1067,13 +1075,87 @@ cmd_share() {
 			fi
 		fi
 
-		_print_step "Zipping up workspace..."
+		local encrypt_reply
 
-		if ! ./gradlew shareWorkspace | grep -E "Workspace zip|workspace archive"; then
-			exit 1
+		if [[ "${FLAG_ENCRYPT}" == "1" ]]; then
+			encrypt_reply="y"
+		elif [[ "${FLAG_ENCRYPT}" == "0" ]]; then
+			encrypt_reply="n"
+		else
+			while true; do
+				printf "${C_BOLD}%s (y/n): ${C_RESET}" "Encrypt the archive with a 1Password-stored password?"
+				read -r -n1 encrypt_reply
+				echo
+				[[ "${encrypt_reply}" == [yYnN] ]] && break
+			done
 		fi
 
-		_print_success "Workspace saved"
+		if [[ "${encrypt_reply}" == [yY] ]]; then
+			local op_vault="${LEC_OP_VAULT:-Private}"
+			local op_item_title
+			op_item_title="lec-share-$(basename "${PROJECT_DIRECTORY}")-$(date +%Y%m%d_%H%M%S)"
+			local op_available=0
+
+			if command -v op &>/dev/null; then
+				op signin 2>/dev/null
+				if op vault list &>/dev/null; then
+					if op vault get "${op_vault}" &>/dev/null; then
+						op_available=1
+					else
+						_print_warn "Vault \"${op_vault}\" not found. Set the LEC_OP_VAULT environment variable to the name of your 1Password vault."
+					fi
+				fi
+			fi
+
+			local op_password
+
+			if [[ "${op_available}" -gt 0 ]]; then
+				_print_step "Creating password in 1Password (vault: ${op_vault})..."
+
+				op item create \
+					--category=password \
+					--title="${op_item_title}" \
+					--generate-password='letters,digits,symbols,32' \
+					--vault="${op_vault}" || _errorExit "Failed to create 1Password item"
+
+				op_password=$(op read "op://${op_vault}/${op_item_title}/password") || _errorExit "Failed to fetch password from 1Password"
+			else
+				_print_warn "Unable to use 1Password. Create a password in 1Password and paste it below."
+
+				while true; do
+					printf "${C_BOLD}%s${C_RESET}" "Password: "
+					read -r -s op_password
+					echo
+					[[ -n "${op_password}" ]] && break
+					_print_warn "Password cannot be empty."
+				done
+			fi
+
+			_print_step "Zipping and encrypting workspace..."
+
+			if ! ./gradlew shareWorkspace7z -Ppassword="${op_password}" | grep -E "workspace archive"; then
+				exit 1
+			fi
+
+			unset op_password
+
+			if [[ "${op_available}" -gt 0 ]]; then
+				_print_step "Generating 1Password share link (expires 7d)..."
+
+				local op_share_link
+				op_share_link=$(op item share "${op_item_title}" --vault="${op_vault}" --expires-in 7d) || _errorExit "Failed to generate 1Password share link"
+
+				_print_success "Share link (expires 7d): ${op_share_link}"
+			fi
+		else
+			_print_step "Zipping up workspace..."
+
+			if ! ./gradlew shareWorkspace | grep -E "Workspace zip|workspace archive"; then
+				exit 1
+			fi
+
+			_print_success "Workspace saved"
+		fi
 	)
 }
 cmd_start() {

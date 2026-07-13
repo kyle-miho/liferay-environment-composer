@@ -167,6 +167,14 @@ lr.docker.environment.hotfix.urls=\
 
 *Note:* Local file URLs are also supported using the `file://` protocol.
 
+Alternatively, the `lec` script provides the `lec hotfix` command to search for and download a hotfix for the project's configured Liferay version:
+
+```sh
+lec hotfix
+```
+
+This lists the hotfixes available for the project's Liferay version, prompts you to select one, downloads it into `./configs/common/patching`, and adds its URL to the `lr.docker.environment.hotfix.urls` property in `gradle.properties`.
+
 #### Deploy custom modules and projects
 
 Liferay Workspace will automatically build and deploy custom modules and projects contained in the Workspace to the built Liferay Docker image. More documentation on creating and building projects can be found at [Liferay Learn](https://learn.liferay.com/w/dxp/liferay-development/tooling/liferay-workspace).

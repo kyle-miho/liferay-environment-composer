@@ -866,11 +866,11 @@ cmd_hotfix() {
 		local hotfixURL
 		hotfixURL="https://hotfixes.liferay.com/${dxpVersion}/${hotfixFileName}"
 
-		test ! -f ${hotfixLocalPath} && _print_step "Downloading hotfix ${hotfixURL}" && curl --progress-bar "${hotfixURL}" --output ${hotfixLocalPath}
+		test ! -f "${hotfixLocalPath}" && _print_step "Downloading hotfix ${hotfixURL}" && curl --progress-bar "${hotfixURL}" --output "${hotfixLocalPath}"
 		_writeProperty "lr.docker.environment.hotfix.urls" "${hotfixURL}" gradle.properties
 	)
 
-	_print_success $(grep --colour=never '^lr.docker.environment.hotfix.urls=' gradle.properties)
+	_print_success "$(grep --colour=never '^lr.docker.environment.hotfix.urls=' gradle.properties)"
 }
 cmd_importDLStructure() {
 	_checkProjectDirectory "${PWD}"

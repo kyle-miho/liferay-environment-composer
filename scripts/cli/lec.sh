@@ -477,17 +477,17 @@ _getServicePorts() {
 	# shellcheck disable=SC2016
 	local template
 
-	read -r -d '' template <<- 'EOF'
-	NAME,CONTAINER PORT,HOST PORT,WEB LINK,NAMESPACED LINK
-	{{range .Publishers -}}
-		{{if eq .URL "0.0.0.0"}}
-			{{- $.Name}},
-			{{- .TargetPort}},
-			{{- .PublishedPort}},
-			{{- if eq .PublishedPort 443}}https{{else}}http{{end}}://localhost:{{.PublishedPort}},
-			{{- "-"}}
-		{{end}}
-	{{- end}}
+	read -r -d '' template <<-'EOF'
+		NAME,CONTAINER PORT,HOST PORT,WEB LINK,NAMESPACED LINK
+		{{range .Publishers -}}
+			{{if eq .URL "0.0.0.0"}}
+				{{- $.Name}},
+				{{- .TargetPort}},
+				{{- .PublishedPort}},
+				{{- if eq .PublishedPort 443}}https{{else}}http{{end}}://localhost:{{.PublishedPort}},
+				{{- "-"}}
+			{{end}}
+		{{- end}}
 	EOF
 
 	local hostname
@@ -497,11 +497,11 @@ _getServicePorts() {
 		cd "${projectDir}" || exit 1
 
 		docker compose ps ${serviceName:+"${serviceName}"} --format "${template}" |
-		sed -E "s@((https?://)localhost:(80|443|8080|8443|9080)),-@\1,\2${hostname}:\3@g" |
-		_column --keep-empty-lines --separator ',' --table |
-		tee /dev/tty |
-		grep -q "${hostname}" &&
-		printf "Tip: Use the 'NAMESPACED LINK' when running multiple projects at once to keep browser sessions isolated.\n"
+			sed -E "s@((https?://)localhost:(80|443|8080|8443|9080)),-@\1,\2${hostname}:\3@g" |
+			_column --keep-empty-lines --separator ',' --table |
+			tee /dev/tty |
+			grep -q "${hostname}" &&
+			printf "Tip: Use the 'NAMESPACED LINK' when running multiple projects at once to keep browser sessions isolated.\n"
 	)
 }
 _getWorktreeDir() {
@@ -755,19 +755,19 @@ _cmd_setupLocalFzf() {
 	gh -R junegunn/fzf release download 0.29.0 --pattern="*${pattern}" --clobber
 
 	case "${pattern}" in
-		*.zip)
-			echo "Extracting ZIP archive: ${pattern}"
-			unzip -o "${pattern}" -d scripts/cli/dependencies || exit 1
-			;;
-		*.tar.gz | *.tgz)
-			echo "Extracting TGZ archive: ${pattern}"
-			tar -xzf "${pattern}" -C scripts/cli/dependencies
-			;;
-		*)
-			echo "Unsupported archive type or unknown file extension: ${pattern}"
-			echo "Please use '.zip' or '.tar.gz' (or '.tgz') files."
-			exit 1
-			;;
+	*.zip)
+		echo "Extracting ZIP archive: ${pattern}"
+		unzip -o "${pattern}" -d scripts/cli/dependencies || exit 1
+		;;
+	*.tar.gz | *.tgz)
+		echo "Extracting TGZ archive: ${pattern}"
+		tar -xzf "${pattern}" -C scripts/cli/dependencies
+		;;
+	*)
+		echo "Unsupported archive type or unknown file extension: ${pattern}"
+		echo "Please use '.zip' or '.tar.gz' (or '.tgz') files."
+		exit 1
+		;;
 	esac
 
 	if [[ -f "${pattern}" ]]; then
@@ -794,7 +794,7 @@ _cmd_setVersion() {
 cmd_clean() {
 	_checkProjectDirectory "${PWD}"
 
- 	local project_name
+	local project_name
 	project_name="$(_getComposeProjectName "${PROJECT_DIRECTORY}")"
 
 	if _projectHasDockerImages "${project_name}"; then

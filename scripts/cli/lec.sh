@@ -128,6 +128,7 @@ _printHelpAndExit() {
 		  stop                                      Stop a Composer project
 		  clean                                     Stop a Composer project and remove Docker volumes
 		  exportData                                Export container data for a Composer project
+		  hotfix                                    Download a hotfix
 		  list [<entity>]                           List entities of a various types
 		  ports                                     List exposed ports for a Composer project
 		  remove, rm [<project identifier>]         Completely tear down and remove one or more Composer projects
@@ -140,7 +141,7 @@ _printHelpAndExit() {
 
 		${C_BOLD}FLAGS:${C_RESET}
 		  -p, --project PROJECT_IDENTIFIER          Pass in a project directory or name to commands that operate on a project. If not provided, the current working
-		                                            is used. Supported commands are: clean, exportData, importDLStructure, remove, share, start, and stop.
+		                                            is used. Supported commands are: clean, exportData, hotfix, importDLStructure, remove, share, start, and stop.
 
 		${C_BOLD}SHELL FUNCTIONS:${C_RESET}
 		  lecd [project name]                       Jump to a project
@@ -828,6 +829,48 @@ cmd_exportData() {
 
 		_print_success "Container data exported to ${PROJECT_DIRECTORY}/${exportedDataRelativeDir}"
 	)
+}
+cmd_hotfix() {
+	_checkProjectDirectory "${PWD}"
+
+	(
+		cd "${PROJECT_DIRECTORY}" || exit
+
+		local dxpVersion
+		dxpVersion=$(grep '^liferay.workspace.product=' gradle.properties | cut -d'=' -f 2 | sed 's/^dxp-//g')
+
+		if [[ ${dxpVersion} == 7.0* ]]; then
+			dxpVersion=7.0.10
+		elif [[ ${dxpVersion} == 7.1* ]]; then
+			dxpVersion=7.1.10
+		elif [[ ${dxpVersion} == 7.2* ]]; then
+			dxpVersion=7.2.10
+		elif [ "${dxpVersion}" == "7.3-u36" ]; then
+			dxpVersion=7.3.10-u36
+		elif [[ ${dxpVersion} == 7.3* ]]; then
+			dxpVersion=7.3.10
+		elif [[ ${dxpVersion} == 7.4* ]]; then
+			dxpVersion=7.4.13
+		fi
+
+		local hotfixFileName
+		hotfixFileName=$(curl -s "https://hotfixes.liferay.com/${dxpVersion}/" | grep -o '<a href="[^"]*">' | cut -d'"' -f 2 | _fzf --exact --query="hotfix-")
+
+		if [ "" == "${hotfixFileName}" ]; then
+			exit 0
+		fi
+
+		local hotfixLocalPath
+		hotfixLocalPath="configs/common/patching/${hotfixFileName}"
+
+		local hotfixURL
+		hotfixURL="https://hotfixes.liferay.com/${dxpVersion}/${hotfixFileName}"
+
+		test ! -f ${hotfixLocalPath} && _print_step "Downloading hotfix ${hotfixURL}" && curl --progress-bar "${hotfixURL}" --output ${hotfixLocalPath}
+		_writeProperty "lr.docker.environment.hotfix.urls" "${hotfixURL}" gradle.properties
+	)
+
+	_print_success $(grep --colour=never '^lr.docker.environment.hotfix.urls=' gradle.properties)
 }
 cmd_importDLStructure() {
 	_checkProjectDirectory "${PWD}"

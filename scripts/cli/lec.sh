@@ -854,7 +854,7 @@ cmd_hotfix() {
 		fi
 
 		local hotfixFileName
-		hotfixFileName=$(curl -s "https://hotfixes.liferay.com/${dxpVersion}/" | grep -o '<a href="[^"]*">' | cut -d'"' -f 2 | _fzf --exact --query="hotfix-")
+		hotfixFileName=$(curl -s "https://hotfixes.liferay.com/${dxpVersion}/" | grep -o '<a href="[^"]*">' | cut -d'"' -f 2 | grep 'hotfix-' | _select "Select a hotfix number" --exact --query="hotfix-")
 
 		if [ "" == "${hotfixFileName}" ]; then
 			exit 0

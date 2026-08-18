@@ -620,6 +620,8 @@ ext {
 	updateVirtualHosts = {
 		executeSQLQuery("update VirtualHost set hostname = concat(hostname, '.localhost') where hostname <> 'localhost' and hostname not like '%.localhost'", config.databaseName)
 
+		config.companyVirtualHosts = null
+
 		println "Added .localhost to the end of all virtual host names that were not localhost"
 	}
 }

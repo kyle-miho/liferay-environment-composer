@@ -80,7 +80,7 @@ Key subcommands:
 - `lec bats` - Run BATS tests with correct env vars
 - `lec exportData` / `lec importDLStructure` - Data management
 - `lec remove` / `lec rm` - Remove project workspace
-- `lec share` - Share workspace
+- `lec share [--export] [--encrypt | --no-encrypt]` - Share workspace, optionally encrypting the archive with AES-256. Set `LEC_SHARE_ENCRYPT_MODE` to `always` or `never` to skip the prompt.
 - `lec update` - Update LEC
 - `lec version` - Print version info
 
@@ -107,6 +107,7 @@ GitHub Actions workflows in `.github/workflows/`:
 - `check-source-formatting.yaml` - Runs `./gradlew formatSource -Denv.mode.ci=true`
 - `validate-database-import.yaml` - Validates database import
 - `test-e2e-basic.yaml` - Runs BATS e2e test
+- `test-share-encryption.yaml` - Runs BATS tests for encrypted workspace sharing
 - `test-webserver-service.yaml` - Tests webserver service
 - `validate-initial-startup.yaml` - Validates Liferay startup with each database type
 

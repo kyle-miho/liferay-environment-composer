@@ -133,7 +133,9 @@ _printHelpAndExit() {
 		  ports                                     List exposed ports for a Composer project
 		  remove, rm [<project identifier>]         Completely tear down and remove one or more Composer projects
 		  restart [--clean]                         Restarts a running Composer project. The "--clean" flag removes Docker volumes and images during the shutdown.
-		  share [--export]                          Save a Composer workspace for sharing. The "--export" flag exports the container data before saving the workspace.
+		  share [--export] [--encrypt | --no-encrypt]
+		                                            Save a Composer workspace for sharing. Prompts to encrypt the archive with AES-256 using a password stored in 1Password.
+		                                            "--export" exports container data first. "--encrypt" / "--no-encrypt" skip the prompt, as does LEC_SHARE_ENCRYPT_MODE=always|never.
 		  update [--unstable]                       Check for updates to Composer and lec. The "--unstable" flag updates to latest master branch.
 		  version                                   Prints the current version of lec
 
@@ -170,6 +172,12 @@ _confirm() {
 _prompt() {
 	printf "${C_BOLD}%s${C_RESET}" "${1:?Provide prompt text}"
 	read -r "${2:?Need a variable to write response to}"
+}
+_promptSecret() {
+	printf "${C_BOLD}%s${C_RESET}" "${1:?Provide prompt text}"
+	read -r -s "${2:?Need a variable to write response to}"
+
+	echo
 }
 _select() {
 	local prompt_message="${1}"
@@ -721,7 +729,7 @@ _cmd_completions() {
 			echo "--clean"
 			;;
 		share)
-			echo "--export"
+			echo "--encrypt --export --no-encrypt"
 			;;
 		update)
 			echo "--unstable"
@@ -1109,12 +1117,19 @@ cmd_rm() {
 cmd_share() {
 	_checkProjectDirectory "${PWD}"
 
+	local FLAG_ENCRYPT=""
 	local FLAG_EXPORT=0
 
 	while [[ $# -gt 0 ]]; do
 		case "${1}" in
+		--encrypt)
+			shift && FLAG_ENCRYPT=1
+			;;
 		--export)
 			shift && FLAG_EXPORT=1
+			;;
+		--no-encrypt)
+			shift && FLAG_ENCRYPT=0
 			;;
 		*)
 			shift
@@ -1122,8 +1137,61 @@ cmd_share() {
 		esac
 	done
 
+	if [[ -z "${FLAG_ENCRYPT}" && -n "${LEC_SHARE_ENCRYPT_MODE}" ]]; then
+		case "${LEC_SHARE_ENCRYPT_MODE}" in
+		always)
+			FLAG_ENCRYPT=1
+			;;
+		never)
+			FLAG_ENCRYPT=0
+			;;
+		*)
+			_errorExit "\"${LEC_SHARE_ENCRYPT_MODE}\" is not a valid value for LEC_SHARE_ENCRYPT_MODE. Valid values are: always, never."
+			;;
+		esac
+	fi
+
 	(
 		cd "${PROJECT_DIRECTORY}" || exit
+
+		if [[ -z "${FLAG_ENCRYPT}" ]]; then
+			FLAG_ENCRYPT=0
+
+			if _confirm "Encrypt the workspace archive with AES-256?"; then
+				FLAG_ENCRYPT=1
+			fi
+		fi
+
+		local password
+		local password_confirmation
+
+		if [[ "${FLAG_ENCRYPT}" -gt 0 ]]; then
+			if ! _is_program 7z; then
+				_errorExit "The 7z CLI must be installed in order to encrypt workspace archives. Follow the install instructions at https://7-zip.org/download.html."
+			fi
+
+			_print_step "Create a password in 1Password and paste it below."
+
+			while true; do
+				_promptSecret "Password: " password
+
+				if [[ -z "${password}" ]]; then
+					_print_warn "Password cannot be empty."
+
+					continue
+				fi
+
+				_promptSecret "Confirm password: " password_confirmation
+
+				if [[ "${password}" != "${password_confirmation}" ]]; then
+					_print_warn "Passwords do not match."
+
+					continue
+				fi
+
+				break
+			done
+		fi
 
 		if [[ "${FLAG_EXPORT}" -gt 0 ]]; then
 			_print_step "Exporting container data..."
@@ -1133,10 +1201,18 @@ cmd_share() {
 			fi
 		fi
 
-		_print_step "Zipping up workspace..."
+		if [[ "${FLAG_ENCRYPT}" -gt 0 ]]; then
+			_print_step "Zipping and encrypting workspace..."
 
-		if ! ./gradlew shareWorkspace | grep -E "Workspace zip|workspace archive"; then
-			exit 1
+			if ! ./gradlew shareWorkspace7z -ParchivePassword="${password}" | grep -E "workspace archive"; then
+				exit 1
+			fi
+		else
+			_print_step "Zipping up workspace..."
+
+			if ! ./gradlew shareWorkspace | grep -E "Workspace zip|workspace archive"; then
+				exit 1
+			fi
 		fi
 
 		_print_success "Workspace saved"

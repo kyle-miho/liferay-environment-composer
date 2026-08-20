@@ -189,8 +189,12 @@ tasks.register("shareWorkspace7z") {
 			project.relativePath(file)
 		}.join("\n")
 
+		String archivePassword = findProperty("archivePassword")
+
+		String encryptionFlags = archivePassword ? "-mhe=on -p'" + archivePassword.replace("'", "'\\''") + "' " : ""
+
 		try {
-			waitForCommand("7z a -m0=lzma2 -mx=1 -bsp2 ${archiveFileName} -i@${fileListFileName}")
+			waitForCommand("7z a -m0=lzma2 -mx=1 -bsp2 ${encryptionFlags}${archiveFileName} -i@${fileListFileName}")
 		}
 		finally {
 			fileListFile.delete()

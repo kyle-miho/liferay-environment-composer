@@ -107,7 +107,6 @@ GitHub Actions workflows in `.github/workflows/`:
 - `check-source-formatting.yaml` - Runs `./gradlew formatSource -Denv.mode.ci=true`
 - `validate-database-import.yaml` - Validates database import
 - `test-e2e-basic.yaml` - Runs BATS e2e test
-- `test-share-encryption.yaml` - Runs BATS tests for encrypted workspace sharing
 - `test-webserver-service.yaml` - Tests webserver service
 - `validate-initial-startup.yaml` - Validates Liferay startup with each database type
 

@@ -1,0 +1,33 @@
+jobs:
+    discover:
+        outputs:
+            suites: ${{ steps.suites.outputs.suites }}
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v4
+            -   id: suites
+                run: echo "suites=$(ls scripts/tests/*.test.sh | xargs -n1 basename | sed "s/\.test\.sh$//" | sort | jq -R -s -c "split(\"\n\") | map(select(length > 0))")" >> "${GITHUB_OUTPUT}"
+    test-post-merge:
+        needs: discover
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v4
+                with:
+                    submodules: true
+            -   uses: actions/setup-java@v4
+                with:
+                    distribution: zulu
+                    java-version: "21"
+            -   run: sudo apt-get install --yes p7zip-full
+            -   env:
+                    LIFERAY_ENVIRONMENT_COMPOSER_HOME: ${{ github.workspace }}
+                run: ./scripts/cli/lec.sh bats ./scripts/tests/${{ matrix.suite }}.test.sh
+        strategy:
+            fail-fast: false
+            matrix:
+                suite: ${{ fromJSON(needs.discover.outputs.suites) }}
+name: Test post-merge
+on:
+    push:
+        branches: [master]
+    workflow_dispatch:

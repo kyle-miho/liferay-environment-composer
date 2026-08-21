@@ -1,0 +1,19 @@
+jobs:
+    test-pre-merge:
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v4
+                with:
+                    submodules: true
+            -   uses: actions/setup-java@v4
+                with:
+                    distribution: zulu
+                    java-version: "21"
+            -   run: sudo apt-get install --yes p7zip-full
+            -   env:
+                    LIFERAY_ENVIRONMENT_COMPOSER_HOME: ${{ github.workspace }}
+                run: ./scripts/cli/lec.sh bats --filter-tags pre-merge ./scripts/tests/
+name: Test pre-merge
+on:
+    pull_request:
+        branches: [master]

@@ -15,10 +15,25 @@ lec bats ./scripts/tests/test-e2e-basic.test.sh
 # Run tests matching a filter
 lec bats --filter "raw/mysql" ./scripts/tests/test-database-import.test.sh
 
+# Run only the suites that gate pull requests
+lec bats --filter-tags pre-merge ./scripts/tests/
+
 # Run with debug output (prints _debug messages)
 export DEBUG=1
 lec bats ./scripts/tests/test-e2e-basic.test.sh
 ```
+
+## Test Tiers
+
+A suite either gates pull requests or it does not. Suites that gate carry one tag directly under the shebang:
+
+```bash
+#!/bin/bash
+
+# bats file_tags=pre-merge
+```
+
+Untagged suites run in the nightly job, which runs everything with no filter. Omitting the tag is the safe default — keep it off anything that starts containers per test, and note that a missing tag means "runs nightly", never "never runs".
 
 ## Test File Structure
 

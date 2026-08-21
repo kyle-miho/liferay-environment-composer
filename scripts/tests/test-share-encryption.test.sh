@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# bats file_tags=pre-merge
+
 load helpers/setup
 
 TEST_PASSWORD="test"

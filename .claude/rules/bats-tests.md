@@ -38,6 +38,7 @@ teardown() {
 - Each `@test` runs in a subshell — variables don't leak between tests
 
 ## Key rules
+- `# bats file_tags=pre-merge` directly under the shebang if the suite should run on every PR — keep those suites cheap. Omit it otherwise; untagged suites run in the nightly job
 - Never hardcode ports — use `_getServicePort serviceName internalPort`
 - Use `return 1` to fail (not `exit` — that kills the subshell and skips teardown)
 - Use distinct return codes (1, 2, 3) per failure point for easier debugging

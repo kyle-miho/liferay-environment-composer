@@ -211,6 +211,12 @@ tasks.register("shareWorkspaceZip", Zip) {
 
 	destinationDirectory = file 'shared_workspaces'
 
+	doFirst {
+		if (findProperty("archivePassword")) {
+			throw new GradleException("Zip archives do not support AES-256 encryption. The 7z CLI must be installed in order to encrypt workspace archives. Follow the install instructions at https://7-zip.org/download.html.")
+		}
+	}
+
 	doLast {
 		logger.lifecycle "\nWorkspace zip: ${archiveFile.get()}\n"
 	}

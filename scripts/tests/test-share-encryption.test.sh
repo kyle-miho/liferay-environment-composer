@@ -73,10 +73,10 @@ teardown() {
 	_assertArchiveNotEncrypted
 }
 
-@test "LEC_SHARE_ENCRYPT_MODE=always encrypts without prompting" {
+@test "LEC_SHARE_ENCRYPT_MODE=true encrypts without prompting" {
 	_debug "RUNNING ${BATS_TEST_NAME}"
 
-	export LEC_SHARE_ENCRYPT_MODE=always
+	export LEC_SHARE_ENCRYPT_MODE=true
 
 	run _lec share < <(printf "%s\n%s\n" "${TEST_PASSWORD}" "${TEST_PASSWORD}")
 
@@ -84,6 +84,17 @@ teardown() {
 	refute_output --partial "Encrypt the workspace archive"
 
 	_assertArchiveEncrypted "${TEST_PASSWORD}"
+}
+
+@test "The --encrypt and --no-encrypt flags cannot be combined" {
+	_debug "RUNNING ${BATS_TEST_NAME}"
+
+	run _lec share --encrypt --no-encrypt </dev/null
+
+	assert_failure
+	assert_output --partial "cannot be used together"
+
+	assert [ -z "$(_getArchiveFile)" ]
 }
 
 @test "An invalid LEC_SHARE_ENCRYPT_MODE fails without creating an archive" {

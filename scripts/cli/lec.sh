@@ -135,7 +135,7 @@ _printHelpAndExit() {
 		  restart [--clean]                         Restarts a running Composer project. The "--clean" flag removes Docker volumes and images during the shutdown.
 		  share [--export] [--encrypt | --no-encrypt]
 		                                            Save a Composer workspace for sharing. Prompts to encrypt the archive with AES-256 using a password stored in 1Password.
-		                                            "--export" exports container data first. "--encrypt" / "--no-encrypt" skip the prompt, as does LEC_SHARE_ENCRYPT_MODE=always|never.
+		                                            "--export" exports container data first. "--encrypt" / "--no-encrypt" skip the prompt, as does setting LEC_SHARE_ENCRYPT_MODE to "1", "true", "yes" (encrypt) or "0", "false", "no" (do not encrypt).
 		  update [--unstable]                       Check for updates to Composer and lec. The "--unstable" flag updates to latest master branch.
 		  version                                   Prints the current version of lec
 
@@ -1117,8 +1117,9 @@ cmd_rm() {
 cmd_share() {
 	_checkProjectDirectory "${PWD}"
 
-	local FLAG_ENCRYPT=""
+	local FLAG_ENCRYPT=0
 	local FLAG_EXPORT=0
+	local FLAG_NO_ENCRYPT=0
 
 	while [[ $# -gt 0 ]]; do
 		case "${1}" in
@@ -1129,7 +1130,7 @@ cmd_share() {
 			shift && FLAG_EXPORT=1
 			;;
 		--no-encrypt)
-			shift && FLAG_ENCRYPT=0
+			shift && FLAG_NO_ENCRYPT=1
 			;;
 		*)
 			shift
@@ -1137,16 +1138,26 @@ cmd_share() {
 		esac
 	done
 
-	if [[ -z "${FLAG_ENCRYPT}" && -n "${LEC_SHARE_ENCRYPT_MODE}" ]]; then
+	if [[ "${FLAG_ENCRYPT}" -gt 0 && "${FLAG_NO_ENCRYPT}" -gt 0 ]]; then
+		_errorExit "The \"--encrypt\" and \"--no-encrypt\" flags cannot be used together."
+	fi
+
+	local ENCRYPT=""
+
+	if [[ "${FLAG_ENCRYPT}" -gt 0 ]]; then
+		ENCRYPT=1
+	elif [[ "${FLAG_NO_ENCRYPT}" -gt 0 ]]; then
+		ENCRYPT=0
+	elif [[ -n "${LEC_SHARE_ENCRYPT_MODE}" ]]; then
 		case "${LEC_SHARE_ENCRYPT_MODE}" in
-		always)
-			FLAG_ENCRYPT=1
+		1|true|yes)
+			ENCRYPT=1
 			;;
-		never)
-			FLAG_ENCRYPT=0
+		0|false|no)
+			ENCRYPT=0
 			;;
 		*)
-			_errorExit "\"${LEC_SHARE_ENCRYPT_MODE}\" is not a valid value for LEC_SHARE_ENCRYPT_MODE. Valid values are: always, never."
+			_errorExit "\"${LEC_SHARE_ENCRYPT_MODE}\" is not a valid value for LEC_SHARE_ENCRYPT_MODE. Use \"1\", \"true\", or \"yes\" to encrypt, or \"0\", \"false\", or \"no\" to skip encryption."
 			;;
 		esac
 	fi
@@ -1154,18 +1165,18 @@ cmd_share() {
 	(
 		cd "${PROJECT_DIRECTORY}" || exit
 
-		if [[ -z "${FLAG_ENCRYPT}" ]]; then
-			FLAG_ENCRYPT=0
+		if [[ -z "${ENCRYPT}" ]]; then
+			ENCRYPT=0
 
 			if _confirm "Encrypt the workspace archive with AES-256?"; then
-				FLAG_ENCRYPT=1
+				ENCRYPT=1
 			fi
 		fi
 
 		local password
 		local password_confirmation
 
-		if [[ "${FLAG_ENCRYPT}" -gt 0 ]]; then
+		if [[ "${ENCRYPT}" -gt 0 ]]; then
 			if ! _is_program 7z; then
 				_errorExit "The 7z CLI must be installed in order to encrypt workspace archives. Follow the install instructions at https://7-zip.org/download.html."
 			fi
@@ -1201,18 +1212,14 @@ cmd_share() {
 			fi
 		fi
 
-		if [[ "${FLAG_ENCRYPT}" -gt 0 ]]; then
+		if [[ "${ENCRYPT}" -gt 0 ]]; then
 			_print_step "Zipping and encrypting workspace..."
-
-			if ! ./gradlew shareWorkspace7z -ParchivePassword="${password}" | grep -E "workspace archive"; then
-				exit 1
-			fi
 		else
 			_print_step "Zipping up workspace..."
+		fi
 
-			if ! ./gradlew shareWorkspace | grep -E "Workspace zip|workspace archive"; then
-				exit 1
-			fi
+		if ! ./gradlew shareWorkspace -ParchivePassword="${password}" | grep -E "Workspace zip|workspace archive"; then
+			exit 1
 		fi
 
 		_print_success "Workspace saved"
